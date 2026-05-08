@@ -9,7 +9,7 @@ on:
 jobs:
   deploy-to-dev-splunk:
     name: Deploy to DEV_SPLUNK_DEPLOYMENT_SERVER
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout Source
@@ -30,24 +30,20 @@ jobs:
       - name: Copy ServerClass to DEV_SPLUNK_DEPLOYMENT_SERVER
         continue-on-error: true
         run: |
-          ssh -i ${{ secrets.SPLUNK_SSH_KEY }} ${{ secrets.SPLUNK_USER }}@${{ secrets.SPLUNK_HOST }} \
-            "sudo cp ~/staging/serverclass.conf /opt/splunk/etc/system/local/"
+          sudo cp ${{ runner.temp }}/staging/serverclass.conf /opt/splunk/etc/system/local/
 
       - name: Copy New Splunk Apps to DEV_SPLUNK_DEPLOYMENT_SERVER
         continue-on-error: true
         run: |
-          scp -i ${{ secrets.SPLUNK_SSH_KEY }} -r ${{ runner.temp }}/staging/deployment-apps/* \
-            ${{ secrets.SPLUNK_USER }}@${{ secrets.SPLUNK_HOST }}:/opt/splunk/etc/deployment-apps/
+          sudo cp -r ${{ runner.temp }}/staging/deployment-apps/* /opt/splunk/etc/deployment-apps/
 
       - name: Change Ownership of Splunk Directory
         continue-on-error: true
         run: |
-          ssh -i ${{ secrets.SPLUNK_SSH_KEY }} ${{ secrets.SPLUNK_USER }}@${{ secrets.SPLUNK_HOST }} \
-            "sudo chown -R splunk:splunk /opt/splunk/"
+          sudo chown -R splunk:splunk /opt/splunk/
 
       - name: Reload Deployment Server
         continue-on-error: true
         run: |
-          ssh -i ${{ secrets.SPLUNK_SSH_KEY }} ${{ secrets.SPLUNK_USER }}@${{ secrets.SPLUNK_HOST }} \
-            "sudo /opt/splunk/bin/splunk reload deploy-server -auth admin:${{ secrets.SPLUNK_ADMIN_PASSWORD }}"
-          # "sudo /opt/splunk/bin/splunk restart"
+          sudo /opt/splunk/bin/splunk reload deploy-server -auth admin:${{ secrets.SPLUNK_ADMIN_PASSWORD }}
+          # sudo /opt/splunk/bin/splunk restart
