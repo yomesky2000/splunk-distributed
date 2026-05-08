@@ -9,7 +9,7 @@ on:
 jobs:
   deploy-to-dev-splunk:
     name: Deploy to DEV_SPLUNK_DEPLOYMENT_SERVER
-    
+    runs-on: self-hosted
 
     steps:
       - name: Checkout Source
