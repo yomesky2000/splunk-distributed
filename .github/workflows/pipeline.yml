@@ -1,0 +1,49 @@
+name: Splunk Deployment Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-to-dev-splunk:
+    name: Deploy to DEV_SPLUNK_DEPLOYMENT_SERVER
+    runs-on: SPLUNK-DEPLOYMENT-SERVER
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Copy Files to Staging Directory
+        continue-on-error: true
+        run: |
+          rsync -av --delete $GITHUB_WORKSPACE/ $RUNNER_TEMP/staging/
+
+      - name: Publish Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEV_SPLUNK_DEPLOYMENT_SERVER
+          path: ${{ runner.temp }}/staging/
+          compression-level: 9  # tar-like compression
+
+      - name: Copy ServerClass to DEV_SPLUNK_DEPLOYMENT_SERVER
+        continue-on-error: true
+        run: |
+          sudo cp ${{ runner.temp }}/staging/serverclass.conf /opt/splunk/etc/system/local/
+
+      - name: Copy New Splunk Apps to DEV_SPLUNK_DEPLOYMENT_SERVER
+        continue-on-error: true
+        run: |
+          sudo cp -r ${{ runner.temp }}/staging/deployment-apps/* /opt/splunk/etc/deployment-apps/
+
+      - name: Change Ownership of Splunk Directory
+        continue-on-error: true
+        run: |
+          sudo chown -R splunk:splunk /opt/splunk/
+
+      - name: Reload Deployment Server
+        continue-on-error: true
+        run: |
+          sudo /opt/splunk/bin/splunk reload deploy-server -auth admin:${{ secrets.SPLUNK_ADMIN_PASSWORD }}
+          # sudo /opt/splunk/bin/splunk restart
